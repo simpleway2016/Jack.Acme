@@ -19,7 +19,7 @@ namespace UnitTest
 
             var certificateGenerator = serviceProvider.GetRequiredService<ICertificateGenerator>();
 
-            await certificateGenerator.GeneratePfxAsync("jacktan.cn" , new CsrInformation
+            await certificateGenerator.GeneratePfxAsync("yourdomain" , new CsrInformation
             {
                 CountryName = "CA",
                 State = "Ontario",

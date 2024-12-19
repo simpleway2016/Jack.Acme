@@ -6,13 +6,13 @@ Jack.Acme用于自动生成泛域名证书
 
             var services = new ServiceCollection();
             services.AddCertificateGenerator();
-            services.AddAlibabaCloudRecordWriter(accessKeyId, accessKeySecret);
+            services.AddAlibabaCloudRecordWriter(accessKeyId, accessKeySecret);//授权添加acme域名记录，用于通过acme的校验
 
             var serviceProvider = services.BuildServiceProvider();
 
             var certificateGenerator = serviceProvider.GetRequiredService<ICertificateGenerator>();
 
-            await certificateGenerator.GeneratePfxAsync("jacktan.cn" , new CsrInformation
+            await certificateGenerator.GeneratePfxAsync("yourdomain" , new CsrInformation
             {
                 CountryName = "CA",
                 State = "Ontario",
