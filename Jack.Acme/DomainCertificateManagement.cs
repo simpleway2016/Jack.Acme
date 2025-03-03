@@ -105,6 +105,18 @@ namespace Jack.Acme
             return null;
         }
 
+        void log(string content)
+        {
+            try
+            {
+                Console.WriteLine(content);
+            }
+            catch 
+            {
+                 
+            }
+        }
+
         /// <summary>
         /// 生成新的证书
         /// </summary>
@@ -125,8 +137,9 @@ namespace Jack.Acme
                     await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
                     break;
                 }
-                catch (Certes.AcmeRequestException)
+                catch (Certes.AcmeRequestException ex)
                 {
+                    log($"order.Authorizations期间发生错误，{ex.ToString()}");
                     if (i == 9)
                         throw new TimeoutException("order.Authorizations超时");
 
@@ -147,8 +160,9 @@ namespace Jack.Acme
                     else
                         await Task.Delay(3000);
                 }
-                catch (Certes.AcmeRequestException)
+                catch (Certes.AcmeRequestException ex)
                 {
+                    log($"dnsChallenge.Validate期间发生错误，{ex.ToString()}");
                     await Task.Delay(3000);
                 }
             }
