@@ -113,24 +113,44 @@ namespace Jack.Acme
         {
             await init();
 
+            IChallengeContext dnsChallenge = null;
             var order = await _acme.NewOrder(new[] { $"*.{_domain}" });
-
-
-            var authz = (await order.Authorizations()).First();
-            var dnsChallenge = await authz.Dns();
-            var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
-            await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
-
-            for (int i = 0; i <= 500; i++)
+            for (int i = 0; i < 10; i++)
             {
-                if (i == 500)
+                try
+                {
+                    var authz = (await order.Authorizations()).First();
+                    dnsChallenge = await authz.Dns();
+                    var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
+                    await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
+                    break;
+                }
+                catch (Certes.AcmeRequestException)
+                {
+                    if (i == 9)
+                        throw new TimeoutException("order.Authorizations超时");
+
+                    await Task.Delay(3000);
+                }
+            }
+            
+            for (int i = 0; i <= 50; i++)
+            {
+                if (i == 50)
                     throw new TimeoutException("acme验证域名记录超时");
 
-                var ret = await dnsChallenge.Validate();
-                if (ret.Status == Certes.Acme.Resource.ChallengeStatus.Valid)
-                    break;
-                else
+                try
+                {
+                    var ret = await dnsChallenge.Validate();
+                    if (ret.Status == Certes.Acme.Resource.ChallengeStatus.Valid)
+                        break;
+                    else
+                        await Task.Delay(3000);
+                }
+                catch (Certes.AcmeRequestException)
+                {
                     await Task.Delay(3000);
+                }
             }
 
             var cert = await order.Generate(new CsrInfo
