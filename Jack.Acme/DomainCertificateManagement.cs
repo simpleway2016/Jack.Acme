@@ -168,7 +168,7 @@ namespace Jack.Acme
                 foreach (var txtRecord in result.Answers.TxtRecords())
                 {
 
-                    log($"TXT Record: {string.Join("", txtRecord.Text)}");
+                    log($"当前值: {string.Join("", txtRecord.Text)}");
                     if( txtRecord.Text.Any(m=>string.Equals(m , dnsTxt , StringComparison.OrdinalIgnoreCase)) )
                     {
                         log($"记录值已经成功生效");
@@ -185,6 +185,7 @@ namespace Jack.Acme
             if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
                 throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
 
+            log($"域名验证通过");
 
             var cert = await order.Generate(new CsrInfo
             {
