@@ -1,5 +1,6 @@
 ﻿using Certes;
 using Certes.Acme;
+using DnsClient;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -127,13 +128,14 @@ namespace Jack.Acme
 
             IChallengeContext dnsChallenge = null;
             var order = await _acme.NewOrder(new[] { $"*.{_domain}" });
+            string dnsTxt = null;
             for (int i = 0; i < 10; i++)
             {
                 try
                 {
                     var authz = (await order.Authorizations()).First();
                     dnsChallenge = await authz.Dns();
-                    var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
+                    dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
                     await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
                     log($"写入域名记录：{dnsTxt}");
                     break;
@@ -148,8 +150,36 @@ namespace Jack.Acme
                 }
             }
 
-            log($"等待10分钟，让域名记录生效");
-            await Task.Delay(10*60000);
+            // 实例化 LookupClient 对象
+            var lookup = new LookupClient();
+
+            // 指定要查询的域名
+            var domainStr = $"_acme-challenge.{_domain}"; // 替换为实际域名
+
+            for (int i = 0; i < 10; i ++)
+            {
+                await Task.Delay(10000);
+
+                log($"读取{domainStr}记录值");
+                // 查询域名的TXT记录
+                var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
+
+                // 遍历查询结果
+                foreach (var txtRecord in result.Answers.TxtRecords())
+                {
+
+                    log($"TXT Record: {string.Join("", txtRecord.Text)}");
+                    if( txtRecord.Text.Any(m=>string.Equals(m , dnsTxt , StringComparison.OrdinalIgnoreCase)) )
+                    {
+                        log($"记录值已经成功生效");
+                        i = int.MaxValue;
+                        break;
+                    }
+                }
+            }
+
+            log($"再等待1分钟，让域名记录生效");
+            await Task.Delay(60000);
 
             var ret = await dnsChallenge.Validate();
             if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
