@@ -159,7 +159,7 @@ namespace Jack.Acme
             for (int i = 0; i < 10; i ++)
             {
                 await Task.Delay(10000);
-
+                 
                 log($"读取{domainStr}记录值");
                 // 查询域名的TXT记录
                 var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
