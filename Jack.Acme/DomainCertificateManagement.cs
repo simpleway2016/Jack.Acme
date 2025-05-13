@@ -112,9 +112,9 @@ namespace Jack.Acme
             {
                 Console.WriteLine(content);
             }
-            catch 
+            catch
             {
-                 
+
             }
         }
 
@@ -156,10 +156,10 @@ namespace Jack.Acme
             // 指定要查询的域名
             var domainStr = $"_acme-challenge.{_domain}"; // 替换为实际域名
 
-            for (int i = 0; i < 10; i ++)
+            for (int i = 0; i < 10; i++)
             {
                 await Task.Delay(10000);
-                 
+
                 log($"读取{domainStr}记录值");
                 // 查询域名的TXT记录
                 var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
@@ -169,21 +169,31 @@ namespace Jack.Acme
                 {
 
                     log($"当前值: {string.Join("", txtRecord.Text)}");
-                    if( txtRecord.Text.Any(m=>string.Equals(m , dnsTxt , StringComparison.OrdinalIgnoreCase)) )
+                    if (txtRecord.Text.Any(m => string.Equals(m, dnsTxt, StringComparison.OrdinalIgnoreCase)))
                     {
                         log($"记录值已经成功生效");
-                        i = int.MaxValue;
+                        i = 1000;
                         break;
                     }
                 }
             }
-             
+
             log($"再等待1分钟，让域名记录生效");
             await Task.Delay(60000);
 
-            var ret = await dnsChallenge.Validate();
-            if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
-                throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+            for (int i = 0; i < 10; i++)
+            {
+                var ret = await dnsChallenge.Validate();
+                if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Invalid && ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
+                {
+                    log($"域名验证当前状态：{ret.Status}");
+                    await Task.Delay(3000);
+                    continue;
+                }
+                if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
+                    throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+            }
+
 
             log($"域名验证通过");
 
