@@ -177,7 +177,7 @@ namespace Jack.Acme
                     }
                 }
             }
-
+             
             log($"再等待1分钟，让域名记录生效");
             await Task.Delay(60000);
 
