@@ -86,7 +86,7 @@ namespace Jack.Acme.AlibabaCloudApi
                 var request = new AlibabaCloud.SDK.Alidns20150109.Models.AddDomainRecordRequest
                 {
                     Lang = "zh",
-                    DomainName = "jacktan.cn",
+                    DomainName = domainName,
                     RR = "_acme-challenge",
                     Type = "TXT",
                     Value = value

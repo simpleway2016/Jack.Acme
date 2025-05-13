@@ -135,6 +135,7 @@ namespace Jack.Acme
                     dnsChallenge = await authz.Dns();
                     var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
                     await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
+                    log($"写入域名记录：{dnsTxt}");
                     break;
                 }
                 catch (Certes.AcmeRequestException ex)
@@ -146,26 +147,14 @@ namespace Jack.Acme
                     await Task.Delay(3000);
                 }
             }
-            
-            for (int i = 0; i <= 50; i++)
-            {
-                if (i == 50)
-                    throw new TimeoutException("acme验证域名记录超时");
 
-                try
-                {
-                    var ret = await dnsChallenge.Validate();
-                    if (ret.Status == Certes.Acme.Resource.ChallengeStatus.Valid)
-                        break;
-                    else
-                        await Task.Delay(3000);
-                }
-                catch (Certes.AcmeRequestException ex)
-                {
-                    log($"dnsChallenge.Validate期间发生错误，{ex.ToString()}");
-                    await Task.Delay(3000);
-                }
-            }
+            log($"等待10分钟，让域名记录生效");
+            await Task.Delay(10*60000);
+
+            var ret = await dnsChallenge.Validate();
+            if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
+                throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+
 
             var cert = await order.Generate(new CsrInfo
             {
