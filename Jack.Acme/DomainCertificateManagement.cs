@@ -192,6 +192,8 @@ namespace Jack.Acme
                 }
                 if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
                     throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+
+                break;
             }
 
 
