@@ -127,13 +127,14 @@ namespace Jack.Acme
             await init();
 
             IChallengeContext dnsChallenge = null;
-            var order = await _acme.NewOrder(new[] { $"*.{_domain}" });
+            var order = await _acme.NewOrder(new[] { _domain, $"*.{_domain}" });
             string dnsTxt = null;
             for (int i = 0; i < 10; i++)
             {
                 try
                 {
-                    var authz = (await order.Authorizations()).First();
+                    var authList = await order.Authorizations();
+                    var authz = authList.First();
                     dnsChallenge = await authz.Dns();
                     dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
                     await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
