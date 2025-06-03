@@ -14,8 +14,7 @@ namespace Jack.Acme
     {
         private readonly string _domain;
         private readonly IAcmeDomainRecoredWriter _acmeDomainRecoredWriter;
-
-
+        private readonly GenerateOption _generateOption;
         Uri _serverUri = WellKnownServers.LetsEncryptV2;
 
 
@@ -24,14 +23,16 @@ namespace Jack.Acme
         IAccountContext _accountContext;
         AcmeContext _acme;
         IKey _privateKey;
-        public DomainCertificateManagement(string domain, IAcmeDomainRecoredWriter acmeDomainRecoredWriter)
+        public DomainCertificateManagement(string domain, IAcmeDomainRecoredWriter acmeDomainRecoredWriter, GenerateOption generateOption)
         {
             while (domain.StartsWith("*."))
                 domain = domain.Substring(2);
 
             this._domain = domain;
             this._acmeDomainRecoredWriter = acmeDomainRecoredWriter;
-            var filepath = $"$Jack.Acme.{_domain}.privateKey.pem";
+            _generateOption = generateOption;
+
+            var filepath = $"{_generateOption.GetSaveFolderPath()}$Jack.Acme.{_domain}.privateKey.pem";
             if (File.Exists(filepath))
             {
                 _privateKey = KeyFactory.FromPem(File.ReadAllText(filepath, Encoding.UTF8));
@@ -48,7 +49,7 @@ namespace Jack.Acme
             if (_accountContext != null)
                 return;
 
-            string filepath = "$Jack.Acme.acccount.pem";
+            string filepath = $"{_generateOption.GetSaveFolderPath()}$Jack.Acme.acccount.pem";
             string pemKey;
             if (File.Exists(filepath))
             {
@@ -80,11 +81,11 @@ namespace Jack.Acme
         {
             await init();
 
-            if (File.Exists($"$Jack.Acme.{_domain}.order.txt"))
+            if (File.Exists($"{_generateOption.GetSaveFolderPath()}$Jack.Acme.{_domain}.order.txt"))
             {
                 try
                 {
-                    var oldorder = _acme.Order(new Uri(File.ReadAllText($"$Jack.Acme.{_domain}.order.txt", Encoding.UTF8)));
+                    var oldorder = _acme.Order(new Uri(File.ReadAllText($"{_generateOption.GetSaveFolderPath()}$Jack.Acme.{_domain}.order.txt", Encoding.UTF8)));
                     if (oldorder != null)
                     {
                         return await oldorder.Download();
@@ -210,7 +211,7 @@ namespace Jack.Acme
                 CommonName = $"*.{_domain}",
             }, _privateKey, null, 1000);
 
-            File.WriteAllText($"$Jack.Acme.{_domain}.order.txt", order.Location.ToString(), Encoding.UTF8);
+            File.WriteAllText($"{_generateOption.GetSaveFolderPath()}$Jack.Acme.{_domain}.order.txt", order.Location.ToString(), Encoding.UTF8);
             return cert;
         }
     }

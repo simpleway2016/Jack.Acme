@@ -11,9 +11,15 @@ namespace Microsoft.Extensions.DependencyInjection
         /// 添加acme证书生成器
         /// </summary>
         /// <returns></returns>
-        public static IServiceCollection AddCertificateGenerator(this IServiceCollection services)
+        public static IServiceCollection AddCertificateGenerator(this IServiceCollection services, GenerateOption generateOption = null)
         {
-            services.AddSingleton<ICertificateGenerator,DefaultCertificateGenerator>();
+            if (generateOption != null)
+                services.AddSingleton(generateOption);
+            else
+            {
+                services.AddSingleton(new GenerateOption());
+            }
+                services.AddSingleton<ICertificateGenerator, DefaultCertificateGenerator>();
             return services;
         }
     }

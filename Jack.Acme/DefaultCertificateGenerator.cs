@@ -14,11 +14,13 @@ namespace Jack.Acme
     public class DefaultCertificateGenerator : ICertificateGenerator
     {
         private readonly IAcmeDomainRecoredWriter _acmeDomainRecoredWriter;
+        private readonly GenerateOption _generateOption;
         ConcurrentDictionary<string, DomainCertificateManagement> _domainCertManagements = new ConcurrentDictionary<string, DomainCertificateManagement>();
 
-        public DefaultCertificateGenerator(IAcmeDomainRecoredWriter acmeDomainRecoredWriter)
+        public DefaultCertificateGenerator(IAcmeDomainRecoredWriter acmeDomainRecoredWriter,GenerateOption generateOption)
         {
             this._acmeDomainRecoredWriter = acmeDomainRecoredWriter;
+            _generateOption = generateOption;
         }
 
         /// <summary>
@@ -30,7 +32,7 @@ namespace Jack.Acme
         /// <returns></returns>
         public async Task GenerateCrtAsync(string domain, CsrInformation csrInformation, string crtPath, string privateKeyPath)
         {
-            var management = _domainCertManagements.GetOrAdd(domain, s => new DomainCertificateManagement(domain, _acmeDomainRecoredWriter));
+            var management = _domainCertManagements.GetOrAdd(domain, s => new DomainCertificateManagement(domain, _acmeDomainRecoredWriter, _generateOption));
             var certificateChain = await management.GetLastCertificateChain();
             if(certificateChain != null)
             {
@@ -63,7 +65,7 @@ namespace Jack.Acme
         /// <returns></returns>
         public async Task GeneratePfxAsync(string domain, CsrInformation csrInformation, string pfxPath, string password)
         {
-            var management = _domainCertManagements.GetOrAdd(domain, s => new DomainCertificateManagement(domain, _acmeDomainRecoredWriter));
+            var management = _domainCertManagements.GetOrAdd(domain, s => new DomainCertificateManagement(domain, _acmeDomainRecoredWriter, _generateOption));
             byte[] pfxData;
             PfxBuilder pfxBuilder;
 
