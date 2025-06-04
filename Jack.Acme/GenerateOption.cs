@@ -11,7 +11,7 @@ namespace Jack.Acme
         /// </summary>
         public string SaveFolder { get; set; }
 
-        internal string GetSaveFolderPath()
+        public string GetSaveFolderPath()
         {
             if (string.IsNullOrWhiteSpace(this.SaveFolder))
                 return "";
