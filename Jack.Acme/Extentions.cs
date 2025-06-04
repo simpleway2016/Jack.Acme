@@ -1,6 +1,7 @@
 ﻿using Jack.Acme;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -14,7 +15,16 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IServiceCollection AddCertificateGenerator(this IServiceCollection services, GenerateOption generateOption = null)
         {
             if (generateOption != null)
+            {
                 services.AddSingleton(generateOption);
+                if(!string.IsNullOrWhiteSpace(generateOption.SaveFolder))
+                {
+                    if (!Directory.Exists(generateOption.SaveFolder))
+                    {
+                        Directory.CreateDirectory(generateOption.SaveFolder);
+                    }
+                }
+            }               
             else
             {
                 services.AddSingleton(new GenerateOption());
