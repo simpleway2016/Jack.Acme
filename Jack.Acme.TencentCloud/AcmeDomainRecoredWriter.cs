@@ -50,8 +50,19 @@ namespace Jack.Acme.TencentCloud
                 Subdomain = subDomain,
                 RecordType = "TXT"
             };
-            var listResp = await client.DescribeRecordList(listReq);
-
+            DescribeRecordListResponse listResp = null;
+            try
+            {
+                listResp = await client.DescribeRecordList(listReq);
+            }
+            catch( TencentCloudSDKException ex)
+            {
+                listResp = new DescribeRecordListResponse
+                {
+                    RecordList = null
+                };
+            }
+        
             var record = listResp.RecordList?.FirstOrDefault(r => r.Type == "TXT" && r.Name == subDomain);
 
             if (record != null)

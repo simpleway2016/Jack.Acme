@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -126,78 +127,72 @@ namespace Jack.Acme
         public async Task<CertificateChain?> GenerateCertificateChain(CsrInformation csrInformation)
         {
             await init();
+ 
 
-            IChallengeContext dnsChallenge = null;
             var order = await _acme.NewOrder(new[] { _domain, $"*.{_domain}" });
-            string dnsTxt = null;
-            for (int i = 0; i < 10; i++)
-            {
-                try
-                {
-                    var authList = await order.Authorizations();
-                    var authz = authList.First();
-                    dnsChallenge = await authz.Dns();
-                    dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
-                    await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
-                    log($"写入域名记录：{dnsTxt}");
-                    break;
-                }
-                catch (Certes.AcmeRequestException ex)
-                {
-                    log($"order.Authorizations期间发生错误，{ex.ToString()}");
-                    if (i == 9)
-                        throw new TimeoutException("order.Authorizations超时");
 
-                    await Task.Delay(3000);
-                }
-            }
-
-            // 实例化 LookupClient 对象
-            var lookup = new LookupClient();
+            using var httpclient = new HttpClient();
 
             // 指定要查询的域名
             var domainStr = $"_acme-challenge.{_domain}"; // 替换为实际域名
 
-            for (int i = 0; i < 10; i++)
+            var authList = await order.Authorizations();
+            foreach (var authz in authList)
             {
-                await Task.Delay(10000);
-
-                log($"读取{domainStr}记录值");
-                // 查询域名的TXT记录
-                var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
-
-                // 遍历查询结果
-                foreach (var txtRecord in result.Answers.TxtRecords())
+             
+                var contextStr = await httpclient.GetStringAsync(authz.Location.AbsoluteUri);
+                var authContext = System.Text.Json.JsonSerializer.Deserialize<Dtos.AuthorizationContextDto>(contextStr);
+                if(authContext?.challenges?.FirstOrDefault()?.status == "valid")
                 {
-
-                    log($"当前值: {string.Join("", txtRecord.Text)}");
-                    if (txtRecord.Text.Any(m => string.Equals(m, dnsTxt, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        log($"记录值已经成功生效");
-                        i = 1000;
-                        break;
-                    }
-                }
-            }
-
-            log($"再等待1分钟，让域名记录生效");
-            await Task.Delay(60000);
-
-            for (int i = 0; i < 10; i++)
-            {
-                var ret = await dnsChallenge.Validate();
-                if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Invalid && ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
-                {
-                    log($"域名验证当前状态：{ret.Status}");
-                    await Task.Delay(3000);
                     continue;
                 }
-                if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
-                    throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+                var dnsChallenge = await authz.Dns();
+                var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
+                await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
+                log($"写入域名记录：{dnsTxt}");
 
-                break;
+                for (int j = 0; j < 10; j++)
+                {
+                    await Task.Delay(10000);
+
+                    log($"读取{domainStr}记录值");
+
+                    // 实例化 LookupClient 对象
+                    var lookup = new LookupClient();
+
+                    // 查询域名的TXT记录
+                    var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
+
+                    // 遍历查询结果
+                    foreach (var txtRecord in result.Answers.TxtRecords())
+                    {
+
+                        log($"当前值: {string.Join("", txtRecord.Text)}");
+                        if (txtRecord.Text.Any(m => string.Equals(m, dnsTxt, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            log($"记录值已经成功生效");
+                            j = 1000;
+                            break;
+                        }
+                    }
+                }
+
+
+                for (int j = 0; j < 10; j++)
+                {
+                    var ret = await dnsChallenge.Validate();
+                    if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Invalid && ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
+                    {
+                        log($"域名验证当前状态：{ret.Status}");
+                        await Task.Delay(3000);
+                        continue;
+                    }
+                    if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
+                        throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+
+                    break;
+                }
             }
-
 
             log($"域名验证通过");
 

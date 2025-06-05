@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Jack.Acme.AlibabaCloud\Jack.Acme.AlibabaCloud.csproj" />
+    <ProjectReference Include="..\Jack.Acme.TencentCloud\Jack.Acme.TencentCloud.csproj" />
     <ProjectReference Include="..\Jack.Acme\Jack.Acme.csproj" />
   </ItemGroup>
 
