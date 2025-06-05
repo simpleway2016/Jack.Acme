@@ -37,16 +37,10 @@ namespace Jack.Acme.TencentCloud
             return new DnspodClient(cred, "", clientProfile);
         }
 
-        public async Task WriteAsync(string domainName, string value)
+        public async Task WriteAsync(string mainDomain, string value)
         {
             var client = CreateClient();
 
-            // 获取主域名和子域名
-            var parts = domainName.Split('.');
-            if (parts.Length < 2)
-                throw new ArgumentException("域名格式不正确");
-
-            string mainDomain = string.Join('.', parts.Skip(parts.Length - 2));
             string subDomain = "_acme-challenge";
 
             // 查询现有记录
