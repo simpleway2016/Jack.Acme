@@ -5,7 +5,7 @@ using Tea;
 
 namespace Jack.Acme.AlibabaCloudApi
 {
-    class AcmeDomainRecoredWriter : IAcmeDomainRecoredWriter
+   public  class AcmeDomainRecoredWriter : IAcmeDomainRecoredWriter
     {
         private readonly string _accessKeyId;
         private readonly string _accessKeySecret;

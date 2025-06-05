@@ -132,6 +132,8 @@ namespace Jack.Acme
             var order = await _acme.NewOrder(new[] { _domain, $"*.{_domain}" });
 
             using var httpclient = new HttpClient();
+            // 实例化 LookupClient 对象
+            var lookup = new LookupClient();
 
             // 指定要查询的域名
             var domainStr = $"_acme-challenge.{_domain}"; // 替换为实际域名
@@ -149,28 +151,30 @@ namespace Jack.Acme
                 var dnsChallenge = await authz.Dns();
                 var dnsTxt = _acme.AccountKey.DnsTxt(dnsChallenge.Token);
                 await _acmeDomainRecoredWriter.WriteAsync(_domain, dnsTxt);
-                log($"写入域名记录：{dnsTxt}");
+                log($"写入{domainStr} TXT 记录：{dnsTxt}");
 
-                for (int j = 0; j < 10; j++)
+                for (int j = 0; j < 300; j++)
                 {
                     await Task.Delay(10000);
 
-                    log($"读取{domainStr}记录值");
+                    log($"第{(j+1)}次读取{domainStr}记录值");
 
-                    // 实例化 LookupClient 对象
-                    var lookup = new LookupClient();
+                  
 
                     // 查询域名的TXT记录
-                    var result = await lookup.QueryAsync(domainStr, QueryType.TXT);
+                    var result = await lookup.QueryAsync(new DnsQuestion(domainStr, QueryType.TXT), new DnsQueryAndServerOptions()
+                    {
+                        UseCache = false
+                    });
 
                     // 遍历查询结果
                     foreach (var txtRecord in result.Answers.TxtRecords())
                     {
 
-                        log($"当前值: {string.Join("", txtRecord.Text)}");
+                        log($"{domainStr}记录值: {string.Join("", txtRecord.Text)}");
                         if (txtRecord.Text.Any(m => string.Equals(m, dnsTxt, StringComparison.OrdinalIgnoreCase)))
                         {
-                            log($"记录值已经成功生效");
+                            log($"{domainStr}记录值已经成功生效");
                             j = 1000;
                             break;
                         }
@@ -178,23 +182,23 @@ namespace Jack.Acme
                 }
 
 
-                for (int j = 0; j < 10; j++)
+                for (int j = 0; j < 100; j++)
                 {
                     var ret = await dnsChallenge.Validate();
                     if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Invalid && ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
                     {
-                        log($"域名验证当前状态：{ret.Status}");
+                        log($"{domainStr}域名验证当前状态：{ret.Status}");
                         await Task.Delay(3000);
                         continue;
                     }
                     if (ret.Status != Certes.Acme.Resource.ChallengeStatus.Valid)
-                        throw new Exception($"域名验证失败，Status={ret.Status} Err={ret.Error}");
+                        throw new Exception($"{domainStr}域名验证失败，Status={ret.Status} Err={ret.Error}");
 
                     break;
                 }
             }
 
-            log($"域名验证通过");
+            log($"{domainStr}域名验证通过");
 
             var cert = await order.Generate(new CsrInfo
             {
