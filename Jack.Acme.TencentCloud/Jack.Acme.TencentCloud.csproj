@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">True</GeneratePackageOnBuild>
+	  <Version>1.0.0-beta.0.0.1</Version>
+	  <RootNamespace>Jack.Acme.TencentCloud</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TencentCloudSDK.Dnspod" Version="3.0.1254" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jack.Acme.Core\Jack.Acme.Core.csproj" />
+  </ItemGroup>
+
+</Project>
